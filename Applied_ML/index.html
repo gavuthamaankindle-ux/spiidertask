@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medical AI Chat Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --user-bubble: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      --ai-bubble: rgba(255, 255, 255, 0.06);
+      --glass-bg: rgba(15, 23, 42, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --accent-color: #3b82f6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Glow Background Shapes */
+    .glow-bg {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 0;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      background: #1e40af;
+      top: -10%;
+      left: -10%;
+    }
+
+    .glow-2 {
+      background: #0d9488;
+      bottom: -10%;
+      right: -10%;
+    }
+
+    /* Fullscreen Glass Container */
+    .chat-container {
+      width: 100vw;
+      height: 100vh;
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1;
+      position: relative;
+    }
+
+    /* Modern Glass Header */
+    .chat-header {
+      padding: 24px 35px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      margin: 0;
+      font-size: 1.6em;
+      /* Increased from 1.3em */
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Message Stream Window */
+    .chat-messages {
+      flex: 1;
+      padding: 35px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      background: transparent;
+    }
+
+    .message-row {
+      display: flex;
+      width: 100%;
+    }
+
+    .message-row.user-row {
+      justify-content: flex-end;
+    }
+
+    .message-row.ai-row {
+      justify-content: flex-start;
+    }
+
+    /* Sleek Large Chat Bubbles */
+    .bubble {
+      max-width: 75%;
+      padding: 16px 24px;
+      /* Slightly roomier padding */
+      border-radius: 24px;
+      font-size: 1.15rem;
+      /* Increased from 0.98rem */
+      line-height: 1.6;
+      white-space: pre-wrap;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .user-row .bubble {
+      background: var(--user-bubble);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai-row .bubble {
+      background: var(--ai-bubble);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Metadata & Grounded Citations styling */
+    .meta-container {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      /* Increased from 0.85em */
+      color: var(--text-muted);
+      padding: 0 8px;
+    }
+
+    .metric-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #38bdf8;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .citations-list {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+      color: var(--text-muted);
+    }
+
+    .citations-list li {
+      margin-bottom: 6px;
+    }
+
+    /* Footer Input Control Deck */
+    .chat-input-area {
+      padding: 24px 35px;
+      background: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    /* Glassmorphism Input Styling */
+    .chat-input-area input {
+      flex: 1;
+      padding: 16px 28px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 30px;
+      font-size: 1.1rem;
+      /* Increased from 1rem */
+      outline: none;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      /* Glassmorphism effect added */
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text-main);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .chat-input-area input::placeholder {
+      color: #4b5563;
+    }
+
+    .chat-input-area input:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-input-area button {
+      background: var(--user-bubble);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      /* Increased from 0.95rem */
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 14px rgba(29, 78, 216, 0.4);
+    }
+
+    .chat-input-area button:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    /* Async Loading State Design */
+    .status-loading {
+      align-self: flex-start;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      padding: 12px 24px;
+      border-radius: 16px;
+      font-size: 1.05rem;
+      /* Increased */
+      font-weight: 500;
+    }
+
+    /* Strictness Select Custom Dropdown */
+    select {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font-size: 0.95rem;
+      /* Increased */
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    select option {
+      background: #0f172a;
+      color: var(--text-main);
+    }
+
+    /* Custom minimalist scrollbar layout */
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Ambient blur glow graphics behind glass -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>🩺 Evidence-Based Medical AI Console</h2>
+      <div>
+        <label for="threshold"
+          style="font-size:1rem; font-weight:500; color: var(--text-muted); margin-right:8px;">Strictness:</label>
+        <select id="threshold">
+          <option value="0.25">0.25 (Loose)</option>
+          <option value="0.35" selected>0.35 (Standard)</option>
+          <option value="0.50">0.50 (Strict)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Scrollable Window Area -->
+    <div class="chat-messages" id="chatMessages">
+      <!-- Initial Greetings Block -->
+      <div class="message-row ai-row">
+        <div class="bubble">Hello. I am initialized with your background document framework. Ask any target factual
+          query regarding those guidelines below.</div>
+      </div>
+    </div>
+
+    <!-- Bottom Input Controls Container -->
+    <div class="chat-input-area">
+      <input type="text" id="queryInput" placeholder="Type medical query here..." onkeypress="handleKeyPress(event)">
+      <button onclick="submitChatQuery()">Send Response</button>
+    </div>
+  </div>
+
+  <script>
+    const chatMessages = document.getElementById('chatMessages');
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        submitChatQuery();
+      }
+    }
+
+    async function submitChatQuery() {
+      const queryInput = document.getElementById('queryInput');
+      const query = queryInput.value.trim();
+      const threshold = document.getElementById('threshold').value;
+
+      if (!query) return;
+
+      queryInput.value = '';
+
+      // Render User message row
+      const userRow = document.createElement('div');
+      userRow.className = 'message-row user-row';
+      userRow.innerHTML = `<div class="bubble">${query}</div>`;
+      chatMessages.appendChild(userRow);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Render temporary status Loading indicator block
+      const loadingBlock = document.createElement('div');
+      loadingBlock.className = 'status-loading';
+      loadingBlock.id = 'tempLoading';
+      loadingBlock.innerText = '⏳ Reviewing document vectors and verifying answers...';
+      chatMessages.appendChild(loadingBlock);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      const formData = new FormData();
+      formData.append('user_query', query);
+      formData.append('threshold', threshold);
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/query', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        document.getElementById('tempLoading').remove();
+
+        const aiRow = document.createElement('div');
+        aiRow.className = 'message-row ai-row';
+
+        let metaHTML = '';
+        if (data.confidence) {
+          let citationsHTML = '';
+          if (data.citations && data.citations.length > 0) {
+            citationsHTML = `<ul class="citations-list">` +
+              data.citations.map(c => `<li>${c}</li>`).join('') +
+              `</ul>`;
+          } else {
+            citationsHTML = '<div style="padding-left:16px; font-style:italic; color: var(--text-muted);">No matching source blocks crossed threshold.</div>';
+          }
+
+          metaHTML = `
+                    <div class="meta-container">
+                        <div class="metric-badge">Reliability Check: ${data.confidence}</div>
+                        <div style="font-weight:600; margin-bottom: 4px;">Grounded Sources:</div>
+                        ${citationsHTML}
+                    </div>
+                `;
+        }
+
+        let textAnswer = "";
+
+        if (Array.isArray(data.answer) && data.answer.length > 0) {
+          textAnswer = data.answer[0].text || data.answer[0].content || "No response text found.";
+        } else if (typeof data.answer === 'object' && data.answer !== null) {
+          textAnswer = data.answer.text || data.answer.content || JSON.stringify(data.answer);
+        } else {
+          textAnswer = data.answer || "No response text returned.";
+        }
+
+        aiRow.innerHTML = `
+    <div>
+        <div class="bubble">${textAnswer}</div>
+        ${metaHTML}
+    </div>
+`;
+
+        chatMessages.appendChild(aiRow);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      } catch (error) {
+        document.getElementById('tempLoading').remove();
+        const errorRow = document.createElement('div');
+        errorRow.className = 'message-row ai-row';
+        errorRow.innerHTML = `<div class="bubble" style="color:#ef4444; background:rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">⚠️ Connection issue encountered handling data request streams.</div>`;
+        chatMessages.appendChild(errorRow);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+
+</html>
